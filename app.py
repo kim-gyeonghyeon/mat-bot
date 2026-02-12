@@ -24,7 +24,7 @@ rules_text = get_rules()
 
 def ask_gemini(prompt):
     # [무적 설정] 경현님의 특별한 'Gemini 3 Pro' 모델 전용 주소입니다.
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent?key={API_KEY}"
+    url = url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key={API_KEY}"
     headers = {'Content-Type': 'application/json'}
     data = {"contents": [{"parts": [{"text": prompt}]}]}
     
@@ -67,3 +67,4 @@ if rules_text:
                 st.session_state.messages.append({"role": "assistant", "content": ans})
 else:
     st.error("rules.txt 파일을 찾을 수 없습니다. GitHub 저장소에 파일이 있는지 확인해주세요.")
+
