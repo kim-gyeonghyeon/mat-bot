@@ -3,6 +3,7 @@ import os
 import google.generativeai as genai
 
 # --- [설정] ---
+# 이미 깃허브에 올리신 API 키를 그대로 사용합니다.
 GOOGLE_API_KEY = "AIzaSyCdyr7CbuHNIff8PWYWRNwcw4hSVf6FWok"
 genai.configure(api_key=GOOGLE_API_KEY)
 DATA_FILE = "rules.txt"
@@ -12,7 +13,7 @@ st.set_page_config(page_title="사내규정 챗봇", page_icon="🤖")
 st.title("📂 엠에이티플러스 사내규정 챗봇")
 
 def get_rules():
-    # 현재 폴더에서 파일을 확실히 찾기 위해 경로 재설정
+    # 현재 실행 파일 위치를 기준으로 rules.txt를 찾습니다.
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), DATA_FILE)
     if os.path.exists(path):
         with open(path, "r", encoding="utf-8") as f:
@@ -22,15 +23,25 @@ def get_rules():
 rules_text = get_rules()
 
 if rules_text:
-    # 핵심 수정: 모델 이름에서 'models/'를 빼거나 명시적으로 지정
-    # 만약 'gemini-1.5-flash'가 안되면 'gemini-pro'로 자동 전환되게 구성
-    try:
-        model = genai.GenerativeModel('models/gemini-1.5-flash')
-    except:
-        model = genai.GenerativeModel('gemini-pro')
-    
+    # [핵심 수정] 404 에러 방지를 위한 3단계 모델 연결 로직
+    if "model" not in st.session_state:
+        try:
+            # 1순위: 가장 권장되는 최신 이름
+            st.session_state.model = genai.GenerativeModel('gemini-1.5-flash-latest')
+            # 테스트 호출 (실제 모델이 있는지 확인)
+            st.session_state.model.generate_content("hi") 
+        except:
+            try:
+                # 2순위: 대체 이름
+                st.session_state.model = genai.GenerativeModel('gemini-1.5-flash')
+                st.session_state.model.generate_content("hi")
+            except:
+                # 3순위: 가장 안정적인 기본 모델
+                st.session_state.model = genai.GenerativeModel('gemini-pro')
+
     st.success("✅ 규정 확인 완료! 질문을 입력하세요.")
 
+    # 대화 기록 관리
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
@@ -38,30 +49,21 @@ if rules_text:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
-    if user_input := st.chat_input("질문을 입력하세요"):
+    if user_input := st.chat_input("규정에 대해 물어보세요"):
         st.session_state.messages.append({"role": "user", "content": user_input})
         with st.chat_message("user"):
             st.markdown(user_input)
 
         with st.chat_message("assistant"):
             with st.spinner("답변 생성 중..."):
-                prompt = f"다음 규정을 참고해 답변해줘:\n{rules_text}\n\n질문: {user_input}"
-                
+                prompt = f"다음 규정 내용을 바탕으로 답해줘:\n\n{rules_text}\n\n질문: {user_input}"
                 try:
-                    # 응답 생성 시 발생할 수 있는 404 에러를 잡기 위한 예외 처리
-                    response = model.generate_content(prompt)
-                    st.markdown(response.text)
-                    st.session_state.messages.append({"role": "assistant", "content": response.text})
+                    response = st.session_state.model.generate_content(prompt)
+                    ans = response.text
+                    st.markdown(ans)
+                    st.session_state.messages.append({"role": "assistant", "content": ans})
                 except Exception as e:
-                    # 에러가 나면 모델 이름을 바꿔서 한 번 더 시도 (최후의 수단)
-                    try:
-                        alt_model = genai.GenerativeModel('gemini-pro')
-                        response = alt_model.generate_content(prompt)
-                        st.markdown(response.text)
-                        st.session_state.messages.append({"role": "assistant", "content": response.text})
-                    except:
-                        st.error(f"모델 연결 실패. API 키 또는 라이브러리 버전을 확인해주세요: {e}")
+                    st.error(f"죄송합니다. 답변을 생성할 수 없습니다. (에러: {e})")
 else:
     st.error(f"'{DATA_FILE}' 파일을 찾을 수 없습니다.")
-
-    st.info(f"현재 위치: {os.path.dirname(os.path.abspath(__file__))}\n여기에 rules.txt가 있어야 합니다.")
+    st.info(f"현재 위치: {os.path.dirname(os.path.abspath(__file__))}\n이 폴더에 rules.txt 파일이 있어야 합니다.")
