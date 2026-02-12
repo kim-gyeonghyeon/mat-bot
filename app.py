@@ -4,7 +4,7 @@ import requests
 import json
 
 # --- [설정] ---
-# 새로 받으신 API 키를 여기에 넣으세요.
+# 새로 발급받으신 API 키를 여기에 넣으세요.
 API_KEY = "AIzaSyCdyr7CbuHNIff8PWYWRNwcw4hSVf6FWok"
 DATA_FILE = "rules.txt"
 # --------------
@@ -21,20 +21,23 @@ def get_rules():
 
 rules_text = get_rules()
 
-# 라이브러리 에러를 피하기 위해 구글 API 서버에 직접 요청하는 함수
+# 구글 API 서버 v1 주소로 직접 요청하는 함수 (404 방어)
 def ask_gemini(prompt):
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
+    # 주소를 v1beta에서 v1으로, 모델명을 flash-latest로 변경하여 호환성을 높였습니다.
+    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key={API_KEY}"
     headers = {'Content-Type': 'application/json'}
     data = {
         "contents": [{"parts": [{"text": prompt}]}]
     }
     
-    response = requests.post(url, headers=headers, data=json.dumps(data))
-    
-    if response.status_code == 200:
-        return response.json()['candidates'][0]['content']['parts'][0]['text']
-    else:
-        return f"에러 발생: {response.status_code} - {response.text}"
+    try:
+        response = requests.post(url, headers=headers, data=json.dumps(data))
+        if response.status_code == 200:
+            return response.json()['candidates'][0]['content']['parts'][0]['text']
+        else:
+            return f"에러 발생: {response.status_code} - {response.text}"
+    except Exception as e:
+        return f"네트워크 에러: {e}"
 
 if rules_text:
     st.success("✅ 규정 확인 완료! 질문을 입력하세요.")
@@ -53,9 +56,9 @@ if rules_text:
 
         with st.chat_message("assistant"):
             with st.spinner("답변 생성 중..."):
-                prompt = f"다음 규정을 바탕으로 답해줘:\n{rules_text}\n\n질문: {user_input}"
+                prompt = f"다음 규정을 바탕으로 답변해:\n{rules_text}\n\n질문: {user_input}"
                 ans = ask_gemini(prompt)
                 st.markdown(ans)
                 st.session_state.messages.append({"role": "assistant", "content": ans})
 else:
-    st.error(f"'{DATA_FILE}' 파일을 찾을 수 없습니다.")
+    st.error(f"'{DATA_FILE}' 파일을 찾을 수 없습니다. GitHub에 파일이 있는지 확인해주세요.")
