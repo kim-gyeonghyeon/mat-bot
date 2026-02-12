@@ -1,11 +1,11 @@
 import streamlit as st
 import os
-import requests
-import json
+import google.generativeai as genai
 
 # --- [설정] ---
-# 새로 발급받으신 API 키를 여기에 넣으세요.
-API_KEY = "AIzaSyCdyr7CbuHNIff8PWYWRNwcw4hSVf6FWok"
+# 방금 새로 발급받으신 'mat-bot' 프로젝트의 키입니다.
+GOOGLE_API_KEY = "AIzaSyAPs5m_OKSBtDa4rKDpXb5RGG94ZpYrT6A"
+genai.configure(api_key=GOOGLE_API_KEY)
 DATA_FILE = "rules.txt"
 # --------------
 
@@ -21,25 +21,9 @@ def get_rules():
 
 rules_text = get_rules()
 
-# 라이브러리 없이 구글 서버 주소로 직접 질문하는 함수
-def ask_gemini(prompt):
-    # v1beta가 아닌 가장 안정적인 v1 주소를 직접 사용합니다.
-    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={API_KEY}"
-    headers = {'Content-Type': 'application/json'}
-    data = {
-        "contents": [{"parts": [{"text": prompt}]}]
-    }
-    
-    try:
-        response = requests.post(url, headers=headers, data=json.dumps(data))
-        if response.status_code == 200:
-            return response.json()['candidates'][0]['content']['parts'][0]['text']
-        else:
-            return f"서버 응답 에러: {response.status_code}\n{response.text}"
-    except Exception as e:
-        return f"네트워크 에러가 발생했습니다: {e}"
-
 if rules_text:
+    # 새 프로젝트 키는 gemini-1.5-flash 모델을 완벽하게 지원합니다.
+    model = genai.GenerativeModel('gemini-1.5-flash')
     st.success("✅ 규정집 로드 완료! 질문을 시작하세요.")
 
     if "messages" not in st.session_state:
@@ -56,9 +40,12 @@ if rules_text:
 
         with st.chat_message("assistant"):
             with st.spinner("답변 생성 중..."):
-                full_prompt = f"다음 사내 규정을 바탕으로 답변해줘:\n\n{rules_text}\n\n질문: {user_input}"
-                ans = ask_gemini(full_prompt)
-                st.markdown(ans)
-                st.session_state.messages.append({"role": "assistant", "content": ans})
+                prompt = f"다음 규정을 바탕으로 답변해줘:\n{rules_text}\n\n질문: {user_input}"
+                try:
+                    response = model.generate_content(prompt)
+                    st.markdown(response.text)
+                    st.session_state.messages.append({"role": "assistant", "content": response.text})
+                except Exception as e:
+                    st.error(f"죄송합니다. 에러가 발생했습니다: {e}")
 else:
-    st.error(f"'{DATA_FILE}' 파일을 찾을 수 없습니다. GitHub에 파일이 있는지 확인해주세요.")
+    st.error(f"'{DATA_FILE}' 파일을 찾을 수 없습니다. GitHub 저장소를 확인해주세요.")
