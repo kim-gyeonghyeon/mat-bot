@@ -26,11 +26,17 @@ rules_text = get_rules()
 # 2. 모델 설정 (가장 안정적인 gemini-pro 사용)
 @st.cache_resource
 def load_model():
+try:
+    # 가장 표준적이고 튼튼한 모델명입니다.
+    model = genai.GenerativeModel('models/gemini-1.5-flash-latest')
+    # 연결 테스트
+    model.generate_content("test")
+except:
     try:
-        # 가장 표준적이고 호환성이 높은 모델명을 사용합니다.
-        return genai.GenerativeModel('gemini-pro')
+        # 두 번째 대안
+        model = genai.GenerativeModel('models/gemini-1.5-pro-latest')
     except Exception as e:
-        st.error(f"모델 초기화 실패: {e}")
+        st.error(f"모델 연결에 실패했습니다. (상세에러: {e})")
         return None
 
 if rules_text:
@@ -69,3 +75,4 @@ if rules_text:
 else:
     st.error(f"'{DATA_FILE}' 파일을 찾을 수 없습니다.")
     st.info("GitHub에 rules.txt 파일이 app.py와 같은 위치에 있는지 확인해주세요.")
+
