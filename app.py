@@ -21,10 +21,10 @@ def get_rules():
 
 rules_text = get_rules()
 
-# 구글 API 서버 v1 주소로 직접 요청하는 함수 (404 방어)
+# 라이브러리 없이 구글 서버 주소로 직접 질문하는 함수
 def ask_gemini(prompt):
-    # 주소를 v1beta에서 v1으로, 모델명을 flash-latest로 변경하여 호환성을 높였습니다.
-    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key={API_KEY}"
+    # v1beta가 아닌 가장 안정적인 v1 주소를 직접 사용합니다.
+    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={API_KEY}"
     headers = {'Content-Type': 'application/json'}
     data = {
         "contents": [{"parts": [{"text": prompt}]}]
@@ -35,12 +35,12 @@ def ask_gemini(prompt):
         if response.status_code == 200:
             return response.json()['candidates'][0]['content']['parts'][0]['text']
         else:
-            return f"에러 발생: {response.status_code} - {response.text}"
+            return f"서버 응답 에러: {response.status_code}\n{response.text}"
     except Exception as e:
-        return f"네트워크 에러: {e}"
+        return f"네트워크 에러가 발생했습니다: {e}"
 
 if rules_text:
-    st.success("✅ 규정 확인 완료! 질문을 입력하세요.")
+    st.success("✅ 규정집 로드 완료! 질문을 시작하세요.")
 
     if "messages" not in st.session_state:
         st.session_state.messages = []
@@ -56,8 +56,8 @@ if rules_text:
 
         with st.chat_message("assistant"):
             with st.spinner("답변 생성 중..."):
-                prompt = f"다음 규정을 바탕으로 답변해:\n{rules_text}\n\n질문: {user_input}"
-                ans = ask_gemini(prompt)
+                full_prompt = f"다음 사내 규정을 바탕으로 답변해줘:\n\n{rules_text}\n\n질문: {user_input}"
+                ans = ask_gemini(full_prompt)
                 st.markdown(ans)
                 st.session_state.messages.append({"role": "assistant", "content": ans})
 else:
