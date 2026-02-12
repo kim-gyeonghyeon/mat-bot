@@ -3,7 +3,7 @@ import os
 import google.generativeai as genai
 
 # --- [설정] ---
-GOOGLE_API_KEY = "AIzaSyCdyr7CbuHNIff8PWYWRNwcw4hSVf6FWok"
+GOOGLE_API_KEY = "AIzaSyA8AeFMqW3vsuFahBwDgntk5ERwz0xwoo8"
 genai.configure(api_key=GOOGLE_API_KEY)
 DATA_FILE = "rules.txt"
 # --------------
@@ -73,3 +73,4 @@ if rules_text:
             st.error("모델이 연결되지 않았습니다.")
 else:
     st.error(f"'{DATA_FILE}' 파일을 찾을 수 없습니다.")
+
