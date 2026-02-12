@@ -25,7 +25,7 @@ if rules_text:
     # 핵심 수정: 모델 이름에서 'models/'를 빼거나 명시적으로 지정
     # 만약 'gemini-1.5-flash'가 안되면 'gemini-pro'로 자동 전환되게 구성
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('models/gemini-1.5-flash')
     except:
         model = genai.GenerativeModel('gemini-pro')
     
@@ -63,4 +63,5 @@ if rules_text:
                         st.error(f"모델 연결 실패. API 키 또는 라이브러리 버전을 확인해주세요: {e}")
 else:
     st.error(f"'{DATA_FILE}' 파일을 찾을 수 없습니다.")
+
     st.info(f"현재 위치: {os.path.dirname(os.path.abspath(__file__))}\n여기에 rules.txt가 있어야 합니다.")
